@@ -1,0 +1,407 @@
+---
+title: "worldhappinessproject1"
+output: html_document
+date: "2023-10-05"
+---
+
+Hello, my name is Stephen Small and this will be my second project that I've done for the primary purpose of uploading to github. During this project I will be analyzing world happiness scores for the years 2015 to 2023 and investigating further perhaps what some of the contributing factors to hapinness is. The dataset(s) that I will be using can be found at kaggle.com via this link: https://www.kaggle.com/datasets/sazidthe1/global-happiness-scores-and-factors?select=WHR_2018.csv 
+
+During the course of this project I wil analyze the following:
+
+1. The average happiness score for each year.
+2. The top 10 happiness scores for each year.
+3. The top 10 overall average happiness score by country.
+4. Correlation of all factors to the happiness_score. 
+5. Average overall happiness score by region.
+6. Line chart showing the trend of the happiness score by year.
+
+The first thing I need to do is load and install all the necessary packages for this project...
+
+
+
+```{r eval=FALSE, include=FALSE}
+install.packages("tidyverse")
+install.packages("tidyr")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("ggthemes")
+install.packages("janitor")
+```
+
+Now to load them...
+
+```{r}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(janitor)
+```
+
+The next thing I am going to do is load all the datasets using the read.csv function.
+
+```{r}
+world_happiness2015 <- read.csv("~/Downloads/archive/WHR_2015.csv", sep = ",")
+
+world_happiness2016 <- read.csv("~/Downloads/archive/WHR_2016.csv", sep = ",")
+
+world_happiness2017 <- read.csv("~/Downloads/archive/WHR_2017.csv", sep = ",")
+
+world_happiness2018 <- read.csv("~/Downloads/archive/WHR_2018.csv", sep = ",")
+
+world_happiness2019 <- read.csv("~/Downloads/archive/WHR_2019.csv", sep = ",")
+
+world_happiness2020 <- read.csv("~/Downloads/archive/WHR_2020.csv", sep = ",")
+
+world_happiness2021 <- read.csv("~/Downloads/archive/WHR_2021.csv", sep = ",")
+
+world_happiness2022 <- read.csv("~/Downloads/archive/WHR_2022.csv", sep = ",")
+
+world_happiness2023 <- read.csv("~/Downloads/archive/WHR_2023.csv", sep = ",")
+```
+
+Now that the data is loaded I am going to check each table to see if they share the same column names.
+
+```{r}
+summary(world_happiness2015)
+summary(world_happiness2016)
+summary(world_happiness2017)
+summary(world_happiness2018)
+summary(world_happiness2019)
+summary(world_happiness2020)
+summary(world_happiness2021)
+summary(world_happiness2022)
+summary(world_happiness2023)
+```
+After reviewing all the tables, I can see they all share the same column names which makes joining the tables a little easier. First I will need to add a year column and the corresponding year for each table to be able to identiy them better when I join the tables.
+
+```{r}
+world_happiness2015v1 <- world_happiness2015%>%
+  mutate(year = 2015)
+
+world_happiness2016v1 <- world_happiness2016%>%
+  mutate(year = 2016)
+
+world_happiness2017v1 <- world_happiness2017%>%
+  mutate(year = 2017)
+
+world_happiness2018v1 <- world_happiness2018%>%
+  mutate(year = 2018)
+
+world_happiness2019v1 <- world_happiness2019%>%
+  mutate(year = 2019)
+
+world_happiness2020v1 <- world_happiness2020%>%
+  mutate(year = 2020)
+
+world_happiness2021v1 <- world_happiness2021%>%
+  mutate(year = 2021)
+
+world_happiness2022v1 <- world_happiness2022%>%
+  mutate(year = 2022)
+
+world_happiness2023v1 <- world_happiness2023%>%
+  mutate(year = 2023)
+```
+
+```{r include=FALSE}
+world_happiness2018v1$perceptions_of_corruption = as.numeric(as.character(world_happiness2018v1$perceptions_of_corruption))
+```
+
+
+Now I will join them all together with union...
+
+```{r}
+world_happiness <- union( world_happiness2015v1, world_happiness2016v1)
+
+world_happinessv1 <- union(world_happiness, world_happiness2017v1)
+
+world_happinessv2 <- union(world_happinessv1, world_happiness2018v1)
+
+world_happinessv3 <- union(world_happinessv2, world_happiness2019v1)
+
+world_happinessv4 <- union(world_happinessv3, world_happiness2020v1)
+
+world_happinessv5 <- union(world_happinessv4, world_happiness2021v1)
+
+world_happinessv6 <- union(world_happinessv5, world_happiness2022v1)
+
+world_happinessv7 <- union(world_happinessv6, world_happiness2023v1)
+```
+
+After trying to unionize the world_happinessv1 table with worldhappiness2018v1, I find that the data types for the 'perceptions of corruption' column are different. So I will change the data type to match.
+
+```{r}
+world_happiness2018v1$perceptions_of_corruption = as.numeric(as.character(world_happiness2018v1$perceptions_of_corruption))
+```
+
+now to rerun the previous queries...
+
+Now that I've done that,  I will begin the process of cleaning and validating the data. First, I will begin by checking to see if all the columns are in their proper format and also check for any null values.
+
+```{r}
+summary(world_happinessv7)
+```
+
+After running the summary function, I find that all the columns are in an acceptable format and that there are 2 null values throughout the whole dataset. There is one null value in the perceptions of corruption dataset. I will replace that null value with the average perceptions of corruption value of 0.13227. In addition to the perceptions of corruption column, there is also a null value in the healthy life expectancy column. I will also replace that value with the average life expectancy of 0.5840.
+
+```{r}
+world_happinessv8 <- world_happinessv7%>%
+  mutate(healthy_life_expectancy = coalesce(healthy_life_expectancy, 0.5840), perceptions_of_corruption = coalesce(perceptions_of_corruption, 0.13227))
+```
+
+Now to run summary to confirm...
+
+```{r}
+summary(world_happinessv8)
+```
+
+After checking and fixing any null values, I will check for and remove any duplicates with the get_dupes function from the janitor package.
+
+```{r}
+world_happinessv8%>%
+  get_dupes(
+  )
+```
+
+After running the query, I find that there are no duplicates in this dataset. Next, I am going to check for any missplaced values or any typos that may be in the dataset. I will check each column one by one...
+
+
+```{r}
+world_happinessv8%>%
+  count(country)
+```
+
+After running the query I find that there are three different 'Congo' s in the dataset,  'Congo' by itself, Congo (Brazzaville), and Congo(Kinshasha). One of the things I need to figure out is which country the 'Congo' by itself goes to, so I will investigate that further...
+
+```{r}
+world_happinessv8%>%
+  filter(country == "Congo")
+```
+Now to look at the other "Congo's" for any clues to which country this likely belongs to...
+
+```{r}
+world_happinessv8%>%
+  filter(country == "Congo (Brazzaville)")
+
+```
+
+Now Congo (Kinshasha)...
+
+```{r}
+world_happinessv8%>%
+  filter(country == "Congo (Kinshasa)")
+```
+
+After looking at the two rows it appears that 'Congo' is supposed to be 'Congo (Brazzaville)' for a couple of reasons. First is that 'Congo (Brazzaville)' has a record for every row except 2022 which is the year that the 'Congo' record has, and second, the numbers seem to fall more in line with the 'Congo (Brazzaville)' records as well. The next thing I will do is change the name from 'Congo' to 'Congo (Brazzavillle)'.
+
+```{r}
+world_happinessv8$country[world_happinessv8$country == 'Congo'] <- 'Congo (Brazzaville)'
+
+```
+
+now to double check, there should be 9 records...
+
+```{r}
+world_happinessv8%>%
+  filter(country == "Congo (Brazzaville)")
+```
+
+Now that it's fixed , I will check again for any mistakes that were done by counting the country column once again...
+
+```{r}
+world_happinessv8%>%
+  count(country)
+```
+ The only other mistake I see in the country column is that there is another name used for the 'Turkey' column. After doing research I found that in 2022 'Turkey' officially changed there name to 'Turkiye', so in the interest of keeping everything uniform in this dataset, I will change the name to what is now the official name of 'Turkiye'...
+ 
+```{r}
+world_happinessv8$country[world_happinessv8$country == 'Turkey'] <- 'Turkiye'
+```
+ 
+ Now I will double check to see if it was indeed changed, there should be 9 records now...
+ 
+```{r}
+world_happinessv8%>%
+  filter(country == 'Turkiye')
+  
+```
+ Now to triple check country column...
+```{r}
+world_happinessv8 %>% 
+  count(country)
+```
+ 
+ After checking again for any errors I notice that one of the 'Somaliland Region'(on p. 14 of tibble) is not completely in titlecase so I will fix that.
+ 
+```{r}
+world_happinessv8$country[world_happinessv8$country == 'Somaliland region'] <- 'Somaliland Region'
+```
+Now to double check the to make sure, there should be two observations...
+
+
+```{r}
+world_happinessv8 %>% 
+  filter(country == "Somaliland Region")
+  
+```
+After checking to see if there were anymore errors, there was none that I've observed. Now,  I will check the region column...
+ 
+```{r}
+world_happinessv8%>%
+  count(region)
+```
+ No errors there, which will conclude the cleaning part of my analysis of the happiness_score table. Next I will begin analyzing. First thing I am going to do is find the overall average happiness score for each year.
+```{r}
+avg_hap_countby <- world_happinessv8%>%
+  group_by(year) %>% 
+  summarize(avg_happiness_score = mean(happiness_score))
+
+print(avg_hap_countby)
+```
+ After viewing the numbers it appearing that overall happiness score has gone up little by little up until 2021 where it stayed around the same until 2023. I will visualize this with a line plot using the ggplot package.
+ 
+```{r}
+avg_hap_countbyviz <- ggplot(avg_hap_countby, aes(year, avg_happiness_score))+
+  geom_line(stat = "identity")+
+  theme_classic()+
+  scale_x_continuous(breaks = seq(2015, 2023, by = 1))+
+  labs(title = "Overall Average Happiness Score", subtitle = "by year")
+  
+
+print(avg_hap_countbyviz)
+```
+ 
+ After viewing the line chart you can see an increase of the happiness score from 2017 to 2021, after which it began to plateau a little. Now,I would like to figure out what are the top ten happiness score for each year.
+ 
+```{r}
+top10_hap_ey <- world_happinessv8 %>% 
+  group_by(year) %>% 
+  slice_max(happiness_score, n = 10)
+
+print(top10_hap_ey)
+```
+ 
+ After viewing the results of this query, one of the things that is clear is that many of the same countries are on this list each year. Denmark who is number 3 on this list doesnt fall below 3 in any year on this dataset. The distribution is alot clearer to see when visualized with a histogram...
+ 
+```{r}
+top10_hap_eyviz <- ggplot(top10_hap_ey, aes(happiness_score, fill = country))+
+  geom_histogram(bins = 30)+
+  theme_classic()+
+  labs(title = "Distribution of Top Ten Happiness from Each Year")
+print(top10_hap_eyviz)
+```
+ 
+ 
+ One of the things that is interesting is of the 9 years that I have a top ten list for, there are only 13 different countries which means there is very little turnover from this list, so countries on this list seem to consistently stay on this list, which begs the question. Why is that? In order to figure this out I need to figure out which factor contributes to happiness by finding out which factor most positively correlates with the happiness score. In order to do that I will create a corrletion chart for the whole dataset...
+ 
+```{r eval=FALSE, include=FALSE}
+install.packages("corrr")
+```
+ 
+ 
+```{r}
+
+
+library(corrr)
+
+happiness_score_corr<- world_happinessv8 %>% 
+  select(happiness_score, gdp_per_capita, social_support, healthy_life_expectancy, freedom_to_make_life_choices, generosity, perceptions_of_corruption) %>% 
+  correlate()
+
+print(happiness_score_corr)
+
+```
+ 
+After looking at the correlation chart, it appears that gdp per capita is the factor that most positively correlates with the dataset as a whole. But what about the least happy countries vs. the most happy countries, what factors into the happiness score for each? The first thing I would like to figure out is what most positively correlates for the top countries in the dataset. I will take the top 50 countries from each year in terms of happiness and create a correlation table for it...
+```{r}
+top50happinesscoreby <- world_happinessv8 %>% 
+  group_by(year) %>% 
+  slice_max(happiness_score, n = 50)
+
+print(top50happinesscoreby)
+```
+
+Now to run a correlation table...
+
+```{r}
+happiness_score_corrt50 <- top50happinesscoreby %>% 
+  select(happiness_score, gdp_per_capita, social_support, healthy_life_expectancy, freedom_to_make_life_choices, generosity, perceptions_of_corruption) %>% 
+correlate()
+
+print(happiness_score_corrt50)
+```
+After running the correlation table, the results are different than from what I expected. When just taking a sample of the top 50 from each year, the factor that most positively correlates to the happiness score is perceptions of corruption. Now, what about the bottom 50 countries by year in terms of happiness...
+
+
+
+```{r}
+bottom50happinessscoreby <- world_happinessv8 %>% 
+  group_by(year) %>% 
+  slice_min(happiness_score, n = 50)
+
+print(bottom50happinessscoreby)
+```
+
+Now the correlation table...
+
+```{r}
+happiness_score_corrb50 <- bottom50happinessscoreby %>% 
+  select(happiness_score, gdp_per_capita, social_support, healthy_life_expectancy, freedom_to_make_life_choices, generosity, perceptions_of_corruption) %>% 
+  correlate()
+
+print(happiness_score_corrb50)
+```
+
+
+After running the correlation table, the factor that most positively correlates with the happiness score is gdp_per_capita, although the results for this one isn't as definitive.
+
+Now that I've identified some of the factors that correlates to happiness, I would like to identify the top 10 overall average happiness score by country...
+```{r}
+overallavghappinessbc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_happiness_score = mean(happiness_score))
+  
+  topaveragehappinessbc <- overallavghappinessbc %>% 
+    slice_max(average_happiness_score, n = 10)
+  
+  print(topaveragehappinessbc)
+```
+
+
+After running the query, Finland is the happiest overall with a score of 7.662744. Now that I know what the top ten happiest countries are, I am going to figure out the bottom ten overall average happiness from the dataset.
+
+```{r}
+bottom10happinessbc <- overallavghappinessbc %>% 
+  slice_min(average_happiness_score, n = 10)
+
+print(bottom10happinessbc)
+```
+After running the query, Afghanistan shows up as the least happy country with a score of 2.990767. One of the things that I do notice, is that many of these countries are from the middle east. This begs the question, are some regions happier than others? I will group the overall average happiness score by region and see what comes of it....
+
+
+```{r}
+worldhappinessbr <- world_happinessv8 %>% 
+  group_by(region) %>% 
+  summarize(average_happiness_score = mean(happiness_score))
+
+print(worldhappinessbr)
+
+world_happinessbrdesc <- worldhappinessbr %>% 
+  arrange(desc(average_happiness_score))
+
+print(world_happinessbrdesc)
+```
+
+After running the query it's clear that the two happiest regions are North America and Western Europe. The least happy regions are South Asia  and Sub-Saharan Africa. I can better visualize this with a bar chart...
+```{r}
+world_happinessbrbar <- ggplot(worldhappinessbr, aes(region, average_happiness_score, fill = region))+
+  geom_bar(stat = "identity")+
+  theme_excel()+
+  labs(title = "Happiness Score by Region")+
+  scale_y_continuous(breaks = seq(1, 8, by = 1))+
+  theme(axis.text.x = element_blank())
+
+print(world_happinessbrbar)
+```

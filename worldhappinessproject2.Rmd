@@ -1,0 +1,330 @@
+---
+title: "world_happiness_project2"
+output: html_document
+date: "2023-10-26"
+---
+```{r include=FALSE}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(janitor)
+```
+
+```{r include=FALSE}
+world_happiness2015 <- read.csv("~/Downloads/archive/WHR_2015.csv", sep = ",")
+
+world_happiness2016 <- read.csv("~/Downloads/archive/WHR_2016.csv", sep = ",")
+
+world_happiness2017 <- read.csv("~/Downloads/archive/WHR_2017.csv", sep = ",")
+
+world_happiness2018 <- read.csv("~/Downloads/archive/WHR_2018.csv", sep = ",")
+
+world_happiness2019 <- read.csv("~/Downloads/archive/WHR_2019.csv", sep = ",")
+
+world_happiness2020 <- read.csv("~/Downloads/archive/WHR_2020.csv", sep = ",")
+
+world_happiness2021 <- read.csv("~/Downloads/archive/WHR_2021.csv", sep = ",")
+
+world_happiness2022 <- read.csv("~/Downloads/archive/WHR_2022.csv", sep = ",")
+
+world_happiness2023 <- read.csv("~/Downloads/archive/WHR_2023.csv", sep = ",")
+```
+
+```{r include=FALSE}
+
+
+
+
+
+
+world_happiness2015v1 <- world_happiness2015%>%
+  mutate(year = 2015)
+
+world_happiness2016v1 <- world_happiness2016%>%
+  mutate(year = 2016)
+
+world_happiness2017v1 <- world_happiness2017%>%
+  mutate(year = 2017)
+
+world_happiness2018v1 <- world_happiness2018%>%
+  mutate(year = 2018)
+
+world_happiness2019v1 <- world_happiness2019%>%
+  mutate(year = 2019)
+
+world_happiness2020v1 <- world_happiness2020%>%
+  mutate(year = 2020)
+
+world_happiness2021v1 <- world_happiness2021%>%
+  mutate(year = 2021)
+
+world_happiness2022v1 <- world_happiness2022%>%
+  mutate(year = 2022)
+
+world_happiness2023v1 <- world_happiness2023%>%
+  mutate(year = 2023)
+
+world_happiness <- union( world_happiness2015v1, world_happiness2016v1)
+
+world_happinessv1 <- union(world_happiness, world_happiness2017v1)
+
+world_happiness2018v1$perceptions_of_corruption = as.numeric(as.character(world_happiness2018v1$perceptions_of_corruption))
+
+world_happinessv2 <- union(world_happinessv1, world_happiness2018v1)
+
+world_happinessv3 <- union(world_happinessv2, world_happiness2019v1)
+
+world_happinessv4 <- union(world_happinessv3, world_happiness2020v1)
+
+world_happinessv5 <- union(world_happinessv4, world_happiness2021v1)
+
+world_happinessv6 <- union(world_happinessv5, world_happiness2022v1)
+
+world_happinessv7 <- union(world_happinessv6, world_happiness2023v1)
+
+world_happiness2018v1$perceptions_of_corruption = as.numeric(as.character(world_happiness2018v1$perceptions_of_corruption))
+
+
+world_happinessv8 <- world_happinessv7%>%
+  mutate(healthy_life_expectancy = coalesce(healthy_life_expectancy, 0.5840), perceptions_of_corruption = coalesce(perceptions_of_corruption, 0.13227))
+
+world_happinessv8$country[world_happinessv8$country == 'Congo'] <- 'Congo (Brazzaville)'
+
+world_happinessv8$country[world_happinessv8$country == 'Turkey'] <- 'Turkiye'
+
+avg_hap_countby <- world_happinessv8%>%
+  group_by(year) %>% 
+  summarize(avg_happiness_score = mean(happiness_score))
+
+avg_hap_countbyviz <- ggplot(avg_hap_countby, aes(year, avg_happiness_score))+
+  geom_line(stat = "identity")+
+  theme_classic()+
+  scale_x_continuous(breaks = seq(2015, 2023, by = 1))+
+  labs(title = "Overall Average Happiness Score", subtitle = "by year")
+
+top10_hap_ey <- world_happinessv8 %>% 
+  group_by(year) %>% 
+  slice_max(happiness_score, n = 10)
+
+top10_hap_eyviz <- ggplot(top10_hap_ey, aes(happiness_score, fill = country))+
+  geom_histogram(bins = 30)+
+  theme_classic()+
+  labs(title = "Distribution of Top Ten Happiness from Each Year")
+
+
+library(corrr)
+
+happiness_score_corr<- world_happinessv8 %>% 
+  select(happiness_score, gdp_per_capita, social_support, healthy_life_expectancy, freedom_to_make_life_choices, generosity, perceptions_of_corruption) %>% 
+  correlate()
+
+top50happinesscoreby <- world_happinessv8 %>% 
+  group_by(year) %>% 
+  slice_max(happiness_score, n = 50)
+
+happiness_score_corrt50 <- top50happinesscoreby %>% 
+  select(happiness_score, gdp_per_capita, social_support, healthy_life_expectancy, freedom_to_make_life_choices, generosity, perceptions_of_corruption) %>% 
+correlate()
+
+bottom50happinessscoreby <- world_happinessv8 %>% 
+  group_by(year) %>% 
+  slice_min(happiness_score, n = 50)
+
+happiness_score_corrb50 <- bottom50happinessscoreby %>% 
+  select(happiness_score, gdp_per_capita, social_support, healthy_life_expectancy, freedom_to_make_life_choices, generosity, perceptions_of_corruption) %>% 
+  correlate()
+
+overallavghappinessbc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_happiness_score = mean(happiness_score))
+  
+  topaveragehappinessbc <- overallavghappinessbc %>% 
+    slice_max(average_happiness_score, n = 10)
+  
+  bottom10happinessbc <- overallavghappinessbc %>% 
+  slice_min(average_happiness_score, n = 10)
+  
+  worldhappinessbr <- world_happinessv8 %>% 
+  group_by(region) %>% 
+  summarize(average_happiness_score = mean(happiness_score))
+  
+  world_happinessbrdesc <- worldhappinessbr %>% 
+  arrange(desc(average_happiness_score))
+  
+  world_happinessbrbar <- ggplot(worldhappinessbr, aes(region, average_happiness_score, fill = region))+
+  geom_bar(stat = "identity")+
+  theme_excel()+
+  labs(title = "Happiness Score by Region")+
+  scale_y_continuous(breaks = seq(1, 8, by = 1))+
+  theme(axis.text.x = element_blank())
+  
+  world_happinessv8$country[world_happinessv8$country == 'Somaliland region'] <- 'Somaliland Region'
+
+```
+
+
+After analyzing the happiness score in relation to some of the factors, I am curious how the countries compare by the  factors individually. The first column I am going to compare is gdp per captita. 
+
+
+```{r}
+gdppercapitadesc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_gdp = mean(gdp_per_capita)) %>% 
+  arrange(desc(average_gdp))
+
+print(gdppercapitadesc)
+
+gdppercapitadesct12 <- gdppercapitadesc %>% 
+  slice_max(average_gdp, n = 12)
+
+print(gdppercapitadesct12)
+```
+
+Now I can visualize with ggplot...
+
+```{r}
+topaveragegdpviz <- ggplot(gdppercapitadesct12, aes(country, average_gdp, fill = country))+
+  geom_bar(stat = "identity")+
+  theme_classic()+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  labs(title = "Top 12 Average Gdp-Per-Capita", subtitle = "by country")+
+  theme(axis.text.x = element_blank())
+
+print(topaveragegdpviz)
+```
+
+Now I'll do the same for the social support column...
+
+```{r}
+socialsupportdesc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_social_support = mean(social_support)) 
+  
+socialsupportt12 <- socialsupportdesc %>% 
+  slice_max(average_social_support, n = 12)
+
+print(socialsupportt12)
+  
+```
+Now I will plot it...
+
+```{r}
+socialsupportt12viz <- ggplot(socialsupportt12, aes(country, average_social_support))+
+  geom_bar(stat = "identity", fill = "red")+
+  theme_classic()+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  labs(title = "Top 12 Average Social Support", subtitle = "by country")
+
+print(socialsupportt12viz)
+```
+
+From the ggpot visualize we can observe that Iceland has the highest social support score. The next column I am going to do is healthy life expectancy...
+
+```{r}
+lifeexpectancydesc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_life_expectancy = mean(healthy_life_expectancy)) %>% 
+  arrange(desc(average_life_expectancy))
+
+lifeexpectancyt12 <- lifeexpectancydesc %>% 
+  slice_max(average_life_expectancy, n = 12)
+
+print(lifeexpectancyt12)
+```
+
+Now the ggplot...
+
+```{r}
+lifeexpectancyt12viz <- ggplot(lifeexpectancyt12, aes(country, average_life_expectancy, fill = country))+
+  geom_bar(stat = "identity")+
+  theme_classic()+
+  theme(axis.text.x = element_blank())+
+  labs(title = "Top 12 Average Healthy Life Expectancy", subtitle = "by country")
+
+print(lifeexpectancyt12viz)  
+```
+When looking at the visualization, it's clear that Hong Kong and Singapore scores highest with the average healthy life expectancies. The next column I will do is the freedom to make life choices column.
+
+```{r}
+freedomlifechoicesdesc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_freedom_to_make_life_choices = mean(freedom_to_make_life_choices)) %>% 
+  arrange(desc(average_freedom_to_make_life_choices))
+
+freedomlifechoicest12 <- freedomlifechoicesdesc %>% 
+  slice_max(average_freedom_to_make_life_choices, n = 12)
+
+print(freedomlifechoicest12)
+
+
+
+```
+Now to visualize...
+
+```{r}
+freedomlifechoicest12viz <- ggplot(freedomlifechoicest12, aes(country, average_freedom_to_make_life_choices))+
+  geom_bar(stat = "identity", fill = "green")+
+  theme_classic()+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  labs(title = "Top 12 Average Freedom to Make Life Choice", subtitle = "by country")
+
+print(freedomlifechoicest12viz)
+```
+From the visualization, Uzbekistan leads in the freedom to make life choices score. The next score I am going to look at is the generosity score. I will do as I did with the previous columns.
+
+```{r}
+generositydesc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_generosity = mean(generosity)) %>% 
+  arrange(desc(average_generosity))
+
+generosityt12 <- generositydesc %>% 
+  slice_max(average_generosity, n = 12)
+
+print(generosityt12)
+```
+After arranging the average generosity in descending order and taking the top 12, Myanmar is the has the highest generosity score. This of course be better visualized with ggplot...
+
+```{r}
+generosityt12viz <- ggplot(generosityt12, aes(country, average_generosity))+
+  geom_bar(stat = "identity", fill = "brown")+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  theme_classic()+
+  labs(title = "Top 12 Average Generosity Score", subtitle = "by country")
+
+print(generosityt12viz)
+```
+
+As you can see from the bar chart it clearly show's Myanmar leading in the generosity category.
+Now I am going to check the last variable of this dataset, perceptions of corruption...
+
+```{r}
+perceptionsofcorruptiondesc <- world_happinessv8 %>% 
+  group_by(country) %>% 
+  summarize(average_perceptions_of_corruption = mean(perceptions_of_corruption)) %>% 
+  arrange(desc(average_perceptions_of_corruption))
+
+perceptionsofcorruptiont12 <- perceptionsofcorruptiondesc %>% 
+  slice_max(average_perceptions_of_corruption, n = 12)
+
+print(perceptionsofcorruptiont12)
+```
+After running that query, Singapore has the highest score in this category. Like I did with the other categories, I will now visualize this.
+
+```{r}
+perceptionsofcorruptiont12viz <- ggplot(perceptionsofcorruptiont12, aes(country, average_perceptions_of_corruption))+
+  geom_bar(stat = "identity", fill = "chartreuse4")+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  theme_classic()+
+  labs(title = "Top 12 Average 'Perceptions of Corruption' Scores", subtitle = "by country")
+
+print(perceptionsofcorruptiont12viz)
+
+
+```
+
+As the chart clearly shows, Singapore leads in this category. 
+
+Well, that concludes my world_happiness project. Over the course of this project I cleaned and fixed several errors to make sure the data was ready for analysis. I then began analyzing where I found out many things, such as gdp per capita is the variable that positively correlates with the happiness score for dataset as a whole. Thanks for joining me, I hope to only improve as I continue these projects.
